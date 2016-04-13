@@ -127,6 +127,73 @@ void setCommand(redisClient *c) {
     setGenericCommand(c,flags,c->argv[1],c->argv[2],expire,unit,NULL,NULL);
 }
 
+//ws
+/* SET key value offset [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
+void ws_setCommand(redisClient *c){
+	int j;
+    robj *expire = NULL;
+    int unit = UNIT_SECONDS;
+    int flags = REDIS_SET_NO_FLAGS;
+
+    for (j = 4; j < c->argc; j++) {
+        char *a = c->argv[j]->ptr;
+        robj *next = (j == c->argc-1) ? NULL : c->argv[j+1];
+
+        if ((a[0] == 'n' || a[0] == 'N') &&
+            (a[1] == 'x' || a[1] == 'X') && a[2] == '\0') {
+            flags |= REDIS_SET_NX;
+        } else if ((a[0] == 'x' || a[0] == 'X') &&
+                   (a[1] == 'x' || a[1] == 'X') && a[2] == '\0') {
+            flags |= REDIS_SET_XX;
+        } else if ((a[0] == 'e' || a[0] == 'E') &&
+                   (a[1] == 'x' || a[1] == 'X') && a[2] == '\0' && next) {
+            unit = UNIT_SECONDS;
+            expire = next;
+            j++;
+        } else if ((a[0] == 'p' || a[0] == 'P') &&
+                   (a[1] == 'x' || a[1] == 'X') && a[2] == '\0' && next) {
+            unit = UNIT_MILLISECONDS;
+            expire = next;
+            j++;
+        } else {
+            addReply(c,shared.syntaxerr);
+            return;
+        }
+    }
+	
+	getLongLongFromObject(c->argv[3], &offset);
+	//parse offset
+	/*
+	long long offset;
+	if(getLongLongFromObject(c->argv[3], &offset) != REDIS_OK){
+		 addReply(c,shared.syntaxerr);
+	}else
+		addReply(c, createStringObjectFromLongLong(offset));
+	
+	if(offset < 0 || offset > 25){
+		offset += 26;
+		offset %= 26;
+	}
+	
+	//encode value
+	//actually through args-parse, argv[i]:embstr/raw
+	robj *encValue = c->argv[2];
+	sds eptr = encValue->ptr;
+	while(eptr != '\0'){
+		*eptr += offset;
+		eptr++;
+	}
+	*/
+	
+    c->argv[2] = tryObjectEncoding(c->argv[2]); //save space
+    setGenericCommand(c,flags,c->argv[1],c->argv[2],expire,unit,NULL,NULL);
+}
+
+void ws_getCommand(redisClient *c){
+	
+}
+
+
 void setnxCommand(redisClient *c) {
     c->argv[2] = tryObjectEncoding(c->argv[2]);
     setGenericCommand(c,REDIS_SET_NX,c->argv[1],c->argv[2],NULL,0,shared.cone,shared.czero);

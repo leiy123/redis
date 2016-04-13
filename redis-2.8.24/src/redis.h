@@ -1445,7 +1445,8 @@ void pfdebugCommand(redisClient *c);
 void latencyCommand(redisClient *c);
 //ws
 void ws_utimeCommand(redisClient *c);
-void wsSet()
+void ws_getCommand(redisClient *c);
+void ws_setCommand(redisClient *c);
 
 
 #if defined(__GNUC__)
