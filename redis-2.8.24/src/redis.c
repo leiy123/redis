@@ -277,7 +277,7 @@ struct redisCommand redisCommandTable[] = {
     {"latency",latencyCommand,-2,"arslt",0,NULL,0,0,0,0,0},
 	//ws
 	{"ws_utime",ws_utimeCommand,-1,"r",0,NULL,0,0,0,0,0},
-	{"ws_get",ws_getCommand,2,"rF",0,NULL,1,1,1,0,0},
+	{"ws_get",ws_getCommand,3,"rF",0,NULL,1,1,1,0,0},
     {"ws_set",ws_setCommand,-4,"wm",0,NULL,1,1,1,0,0},
 };
 

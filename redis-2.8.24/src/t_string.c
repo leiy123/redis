@@ -191,9 +191,41 @@ void ws_setCommand(redisClient *c){
     c->argv[2] = tryObjectEncoding(c->argv[2]); //save space
     setGenericCommand(c,flags,c->argv[1],c->argv[2],expire,unit,NULL,NULL);
 }
-
+//ws_get key offset
 void ws_getCommand(redisClient *c){
+	long offset;
+	if(getLongFromObjectOrReply(c, c->argv[2], &offset, "invalid offset index") != REDIS_OK)
+        return;
+	if(offset < 0 || offset > 25){
+		offset += 26;
+		offset %= 26;
+	}
 	
+	robj *o, *dec;
+    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.nullbulk)) == NULL)
+        //return REDIS_OK;
+		return;
+
+    if (o->type != REDIS_STRING) {
+        addReply(c,shared.wrongtypeerr);
+        return REDIS_ERR;
+    } else { //addReplyBulk(c,o);
+        addReplyBulkLen(c,o);
+		//modify addReply(c,obj);
+		sds eptr = o->ptr;
+		if((dec = getDecodedObject(o)) != o){ //convert encode: int ---> embstr/raw 
+			eptr =  dec->ptr;
+		}
+		while(*eptr != '\0'){
+			*eptr -= offset;
+			eptr++;
+			}
+		}
+			
+		addReply(c, dec);
+		addReply(c,shared.crlf);
+		freeStringObject(dec);
+		return;
 }
 
 
