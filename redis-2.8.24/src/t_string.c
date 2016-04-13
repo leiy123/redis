@@ -161,7 +161,10 @@ void ws_setCommand(redisClient *c){
         }
     }
 	
-	getLongLongFromObject(c->argv[3], &offset);
+	long offset;
+	if(getLongFromObjectOrReply(c, c->argv[3], &offset, "invalid offset index") != REDIS_OK)
+        return;
+	
 	//parse offset
 	/*
 	long long offset;
@@ -169,21 +172,21 @@ void ws_setCommand(redisClient *c){
 		 addReply(c,shared.syntaxerr);
 	}else
 		addReply(c, createStringObjectFromLongLong(offset));
-	
+	*/
 	if(offset < 0 || offset > 25){
 		offset += 26;
 		offset %= 26;
 	}
-	
+	/*
 	//encode value
 	//actually through args-parse, argv[i]:embstr/raw
+	*/
 	robj *encValue = c->argv[2];
 	sds eptr = encValue->ptr;
-	while(eptr != '\0'){
+	while(*eptr != '\0'){
 		*eptr += offset;
 		eptr++;
 	}
-	*/
 	
     c->argv[2] = tryObjectEncoding(c->argv[2]); //save space
     setGenericCommand(c,flags,c->argv[1],c->argv[2],expire,unit,NULL,NULL);
