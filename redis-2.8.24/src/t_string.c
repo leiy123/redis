@@ -210,7 +210,7 @@ void ws_getCommand(redisClient *c){
         addReply(c,shared.wrongtypeerr);
         return REDIS_ERR;
     } else { //addReplyBulk(c,o);
-        addReplyBulkLen(c,o);
+        //addReplyBulkLen(c,o);
 		//modify addReply(c,obj);
 		sds eptr = o->ptr;
 		if((dec = getDecodedObject(o)) != o){ //convert encode: int ---> embstr/raw 
@@ -221,7 +221,7 @@ void ws_getCommand(redisClient *c){
 			eptr++;
 			}
 		}
-			
+		addReplyBulkLen(c,dec);	
 		addReply(c, dec);
 		addReply(c,shared.crlf);
 		freeStringObject(dec);
