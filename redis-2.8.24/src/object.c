@@ -151,6 +151,14 @@ robj *createHashObject(void) {
     o->encoding = REDIS_ENCODING_ZIPLIST;
     return o;
 }
+//ws
+robj *createBstObject(void) {
+    bst *bt = bstCreate();
+    robj *o = createObject(REDIS_BST,bt);
+    o->encoding = REDIS_ENCODING_BST;
+    return o;
+}
+
 
 robj *createZsetObject(void) {
     zset *zs = zmalloc(sizeof(*zs));
@@ -183,6 +191,17 @@ void freeListObject(robj *o) {
         break;
     case REDIS_ENCODING_ZIPLIST:
         zfree(o->ptr);
+        break;
+    default:
+        redisPanic("Unknown list encoding type");
+    }
+}
+
+//ws
+void freeBstObject(robj *o) {
+    switch (o->encoding) {
+    case REDIS_ENCODING_BST:
+        bstFree((bst*) o->ptr);
         break;
     default:
         redisPanic("Unknown list encoding type");
@@ -246,6 +265,7 @@ void decrRefCount(robj *o) {
         case REDIS_SET: freeSetObject(o); break;
         case REDIS_ZSET: freeZsetObject(o); break;
         case REDIS_HASH: freeHashObject(o); break;
+		case REDIS_BST: freeBstObject(o); break;
         default: redisPanic("Unknown object type"); break;
         }
         zfree(o);

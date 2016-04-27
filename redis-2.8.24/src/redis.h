@@ -183,6 +183,9 @@ typedef long long mstime_t; /* millisecond time type. */
 #define REDIS_ZSET 3
 #define REDIS_HASH 4
 
+//ws
+#define REDIS_BST 5
+
 /* Objects encoding. Some kind of objects like Strings and Hashes can be
  * internally represented in multiple ways. The 'encoding' field of the object
  * is set to one of this fields for this object. */
@@ -194,7 +197,8 @@ typedef long long mstime_t; /* millisecond time type. */
 #define REDIS_ENCODING_ZIPLIST 5 /* Encoded as ziplist */
 #define REDIS_ENCODING_INTSET 6  /* Encoded as intset */
 #define REDIS_ENCODING_SKIPLIST 7  /* Encoded as skiplist */
-
+//ws
+#define REDIS_ENCODING_BST 9
 /* Defines related to the dump file format. To store 32 bits lengths for short
  * keys requires a lot of space, so we check the most significant 2 bits of
  * the first byte to interpreter the length:
@@ -578,6 +582,17 @@ typedef struct zset {
     dict *dict;
     zskiplist *zsl;
 } zset;
+
+//ws BST
+typedef struct bstNode{
+	robj *obj;
+	struct bstNode *lchild, *rchild;
+}bstNode;
+
+typedef struct bst{
+	struct bstNode *root;
+	unsigned long num;
+}bst;
 
 typedef struct clientBufferLimitsConfig {
     unsigned long long hard_limit_bytes;
@@ -1071,6 +1086,12 @@ robj *createIntsetObject(void);
 robj *createHashObject(void);
 robj *createZsetObject(void);
 robj *createZsetZiplistObject(void);
+
+//ws
+robj *createBstObject(void);
+void bstFree(bst *bt);
+bst *bstCreate(void);
+
 int getLongFromObjectOrReply(redisClient *c, robj *o, long *target, const char *msg);
 int checkType(redisClient *c, robj *o, int type);
 int getLongLongFromObjectOrReply(redisClient *c, robj *o, long long *target, const char *msg);
@@ -1447,6 +1468,12 @@ void latencyCommand(redisClient *c);
 void ws_utimeCommand(redisClient *c);
 void ws_getCommand(redisClient *c);
 void ws_setCommand(redisClient *c);
+
+//ws: t_BST
+void ws_BSTinsertCommand(redisClient *c);
+void ws_BSTdelCommand(redisClient *c);
+void ws_BSTupdateCommand(redisClient *c);
+void ws_BSTsearchCommand(redisClient *c);
 
 
 #if defined(__GNUC__)
