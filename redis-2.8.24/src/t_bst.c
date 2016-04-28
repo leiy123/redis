@@ -1,5 +1,6 @@
 #include "redis.h"
 
+typedef void (*Visit)(redisClient *c, robj *obj);
 
 bstNode *bstCreateNode(robj *obj) {
     bstNode *bn = zmalloc(sizeof(bstNode));
@@ -34,9 +35,9 @@ void bstFree(bst *bt){
 }
 //location: no dulplication no recursive
 bstNode *bstSearch(bst *bt,  robj *obj){
-	printf("=========before bstSearch=========");
+	printf("=========before bstSearch=========\n");
 	redisAssert(bt != NULL);
-	printf("=========bstSearch=========");
+	printf("=========bstSearch=========\n");
 	bstNode *cur = bt->root, *next = bt->root;
 	//empty tree root:NULL
 	if(!bt->root) return bt->root;
@@ -58,9 +59,10 @@ bstNode *bstSearch(bst *bt,  robj *obj){
 int bstInsert(bst *bt, robj *obj) {
 	bstNode *node = bstSearch(bt, obj);
 	//empty tree
-	printf("===========after bstsearch=================");
+	printf("===========after bstsearch=================\n");
 	if(node == NULL) {
 		bt->root = bstCreateNode(obj);
+		incrRefCount(obj); //createoject:1, ops:++
 		bt->num++;
 		return 1;
 	}
@@ -70,6 +72,7 @@ int bstInsert(bst *bt, robj *obj) {
 	if(res == 0) return 0;
 	else{
 		bstNode *new = bstCreateNode(obj);
+		incrRefCount(obj);
 		if(res < 0) {
 			node->rchild = new;
 		}else{
@@ -79,6 +82,59 @@ int bstInsert(bst *bt, robj *obj) {
 		return 1;
 	}
 }
+//helper:del root;
+bstNode *findLMax(bstNode *root, bstNode *pre, int *ret){
+	redisAssert(root != NULL);
+	bstNode *cur = root->lchild;
+	pre = root;
+	if(cur == NULL){
+		if(root->rchild != NULL){
+			*ret = 1;
+			return root->rchild;
+		} else { //L/Rchild
+			*ret = 2;
+			return NULL;
+		}
+	} 
+	
+	while(cur->rchild != NULL){
+		pre = cur;
+		cur = cur->rchild;
+	}
+	if(cur->lchild != NULL) *ret = 3;
+		else *ret = 4;
+	printf("=======ret: %d=======\n",*ret);
+	return cur;
+}
+
+int bstDel(bst *bt, robj *obj){
+	bstNode *rep, *pre, *node;
+	int ret;
+	robj *rj;
+	
+	node = bstSearch(bt, obj);
+	if(node == NULL || (compareStringObjects(node->obj, obj) != 0) )
+		return 0;
+	else {
+			rj = node->obj;
+			rep = findLMax(node, pre, &ret);
+			printf("=======in bstdel ret: %d=============\n", ret);
+			switch(ret){ 
+				case 1: node->obj = rep->obj; node->rchild = rep->rchild; node->lchild =rep->lchild; break;
+				case 2: rep = node; break;
+				case 3: pre->rchild = rep->lchild; node->obj = rep->obj; break;
+				case 4:  node->obj = rep->obj; break;
+				default:  return 5;
+			}
+		  bt->num--;
+		  if(ret != 2){
+			  //incrRefCount(rep->obj);
+			  rep->obj = rj;
+		  }
+		  bstFreeNode(rep);
+		  return 1;
+	}
+ }
 
 //command: bstadd key value
 void ws_BSTinsertCommand(redisClient *c){
@@ -89,7 +145,7 @@ void ws_BSTinsertCommand(redisClient *c){
 	if(bstobj == NULL){
 		bstobj = createBstObject();
 		dbAdd(c->db,key,bstobj);
-		printf("1111111");
+		printf("1111111\n");
 	} else{
 		if(bstobj->type != REDIS_BST) {
             addReply(c,shared.wrongtypeerr);
@@ -115,9 +171,48 @@ void ws_BSTinsertCommand(redisClient *c){
 	addReplyLongLong(c, status?added: 0);
 }
 
+//
 void ws_BSTdelCommand(redisClient *c){
-	
+	 bst *bt; 
+	 robj *bstobj, *key;
+	 int j, ret;
+	 int deleted = 0, keyremoved = 0;
+	 key = c->argv[1];
+	 if ((bstobj = lookupKeyReadOrReply(c,key,shared.emptymultibulk)) == NULL
+         || checkType(c,bstobj,REDIS_BST)) return;
+		 
+	if (bstobj->encoding != REDIS_ENCODING_BST)
+		redisPanic("Unknown bst encoding");
+		
+	 bt = (bst *)bstobj->ptr;
+	 
+	       for (j = 2; j < c->argc; j++) {  //argv[j]: REDIS_STRING
+				ret = bstDel(bt, c->argv[j]);
+				if (ret == 1) {
+					deleted++;
+					
+					if (bt->num == 0) {
+						dbDelete(c->db,key);
+						keyremoved = 1;
+						break;
+					}
+				} else if(ret == 0){
+					
+				} else{
+					redisPanic("=======missing some case222========");
+				}
+        }
+		
+	 if (deleted) {
+        notifyKeyspaceEvent(REDIS_NOTIFY_ZSET,"bstdel",key,c->db->id);
+        if (keyremoved)
+            notifyKeyspaceEvent(REDIS_NOTIFY_GENERIC,"del",key,c->db->id);
+        signalModifiedKey(c->db,key);
+        server.dirty += deleted;
+    }
+    addReplyLongLong(c,deleted);
 }
+
 void ws_BSTupdateCommand(redisClient *c){
 	
 }
@@ -125,7 +220,6 @@ void ws_BSTupdateCommand(redisClient *c){
 //ws_BSTsearch bst meanlingless -----> traverseCommand
 void ws_BSTsearchCommand(redisClient *c){
 	bst *bt; 
-	bstNode *node;
 	 robj *key = c->argv[1];
 	 //int bstlen;
 	 robj *bstobj;
@@ -147,4 +241,39 @@ void ws_BSTsearchCommand(redisClient *c){
 		  addReplyStatus(c, "not in bst");	
 		}
 }
+//ws_BSTtraverse key
+int ws_bstIntr(bstNode *root, Visit visit, redisClient *c){
+	if(root){
+		printf("=======traverse 247=========\n");
+		if(ws_bstIntr(root->lchild, visit, c)){
+			printf("=======lchild 248=============\n");
+			visit(c, root->obj);
+			printf("=======root 251=============\n");
+			if(ws_bstIntr(root->rchild, visit, c)){
+				printf("=======rchild 252=============\n");
+				return 1;
+				}
+		} else 
+			return 0;
+	} else {
+		printf("==========traverse 255==============\n");
+		return 1;
+	}	 
+}
 
+
+void ws_BSTtraverseCommand(redisClient *c){
+	 long len;
+	 robj *bstobj;
+	 bst *bt;
+	 
+	 if ((bstobj = lookupKeyReadOrReply(c,c->argv[1],shared.emptymultibulk)) == NULL
+         || checkType(c,bstobj,REDIS_BST)) return;
+	
+	 bt = (bst *)bstobj->ptr;	
+	 len = bt->num;
+	 printf("=========len: %d=============\n", len);
+	 
+	 addReplyMultiBulkLen(c,len);
+	 ws_bstIntr(bt->root, addReplyBulk, c);
+}

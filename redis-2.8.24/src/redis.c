@@ -283,8 +283,9 @@ struct redisCommand redisCommandTable[] = {
 	//ws_BST?(logn) no duplication 
 	{"ws_BSTinsert",ws_BSTinsertCommand,-3,"wmF",0,NULL,1,1,1,0,0},
 	{"ws_BSTdel",ws_BSTdelCommand,3,"wmF",0,NULL,1,1,1,0,0},
-	{"ws_BSTupdate",ws_BSTupdateCommand,4,"wF",0,NULL,1,1,1,0,0},
-	{"ws_BSTsearch",ws_BSTsearchCommand,3,"rF",0,NULL,1,1,1,0,0}
+	{"ws_BSTupdate",ws_BSTupdateCommand,4,"wmF",0,NULL,1,1,1,0,0},
+	{"ws_BSTsearch",ws_BSTsearchCommand,3,"rF",0,NULL,1,1,1,0,0},
+	{"ws_BSTtraverse",ws_BSTtraverseCommand,2,"rm",0,NULL,1,1,1,0,0},
 };
 
 /*============================ Utility functions ============================ */

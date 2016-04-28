@@ -1474,6 +1474,7 @@ void ws_BSTinsertCommand(redisClient *c);
 void ws_BSTdelCommand(redisClient *c);
 void ws_BSTupdateCommand(redisClient *c);
 void ws_BSTsearchCommand(redisClient *c);
+void ws_BSTtraverseCommand(redisClient *c);
 
 
 #if defined(__GNUC__)
