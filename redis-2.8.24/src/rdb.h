@@ -74,6 +74,10 @@
 #define REDIS_RDB_TYPE_SET    2
 #define REDIS_RDB_TYPE_ZSET   3
 #define REDIS_RDB_TYPE_HASH   4
+//ws
+#define REDIS_RDB_TYPE_BST  5
+
+
 
 /* Object types for encoded objects. */
 #define REDIS_RDB_TYPE_HASH_ZIPMAP    9
@@ -82,8 +86,11 @@
 #define REDIS_RDB_TYPE_ZSET_ZIPLIST  12
 #define REDIS_RDB_TYPE_HASH_ZIPLIST  13
 
+
+
+
 /* Test if a type is an object type. */
-#define rdbIsObjectType(t) ((t >= 0 && t <= 4) || (t >= 9 && t <= 13))
+#define rdbIsObjectType(t) ((t >= 0 && t <= 5) || (t >= 9 && t <= 13))
 
 /* Special RDB opcodes (saved/loaded with rdbSaveType/rdbLoadType). */
 #define REDIS_RDB_OPCODE_EXPIRETIME_MS 252

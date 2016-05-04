@@ -459,6 +459,12 @@ int rdbSaveObjectType(rio *rdb, robj *o) {
             return rdbSaveType(rdb,REDIS_RDB_TYPE_HASH);
         else
             redisPanic("Unknown hash encoding");
+	//ws
+	case REDIS_BST:
+		 if (o->encoding == REDIS_ENCODING_BST)
+			return rdbSaveType(rdb,REDIS_RDB_TYPE_BST);
+		 else
+            redisPanic("Unknown bst encoding");
     default:
         redisPanic("Unknown object type");
     }
@@ -584,13 +590,32 @@ int rdbSaveObject(rio *rdb, robj *o) {
             }
             dictReleaseIterator(di);
 
-        } else {
-            redisPanic("Unknown hash encoding");
-        }
+        } else {           
+        	redisPanic("Unknown hash encoding");    
+			}
+    	} else if (o->type == REDIS_BST){
+        	 if (o->encoding == REDIS_ENCODING_BST){
+			 	bst *bt = o->ptr;
+				list *list = listCreate();
+				bstTolist(bt->root, addTolist, list);
+           		listIter li;
+            	listNode *ln;
+				
+            	if ((n = rdbSaveLen(rdb,listLength(list))) == -1) return -1;
+            	nwritten += n;
 
-    } else {
-        redisPanic("Unknown object type");
-    }
+            	listRewind(list,&li);
+           		while((ln = listNext(&li)) {
+                robj *eleobj = listNodeValue(ln);
+                if ((n = rdbSaveStringObject(rdb,eleobj)) == -1) return -1;
+                nwritten += n;
+            	}
+      	 	} else {
+            	redisPanic("Unknown hash encoding");
+       	    } 
+		} else {
+        	redisPanic("Unknown object type");
+   	    	}
     return nwritten;
 }
 

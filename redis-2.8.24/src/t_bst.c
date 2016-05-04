@@ -1,6 +1,8 @@
 #include "redis.h"
 
 typedef void (*Visit)(redisClient *c, robj *obj);
+typedef void (*Convert)(bstNode *c, list *list);
+
 
 bstNode *bstCreateNode(robj *obj) {
     bstNode *bn = zmalloc(sizeof(bstNode));
@@ -136,6 +138,25 @@ int bstDel(bst *bt, robj *obj){
 	}
  }
 
+//oLR: for underline storage
+void addTolist(bstNode *c, list *list){
+	list = listAddNodeTail(list, c->obj);
+}
+void bstTolist(bstNode *root, Convert convert, list *li){
+		if(root){
+			convert(root, li);
+			if(bstTolist(root->lchild, convert, li)){
+				if(bstTolist(root->rchild, convert, li)){
+					return 1;
+				}
+		} else 
+			return 0;
+	} else {
+		return 1;
+	}
+}
+
+
 //command: bstadd key value
 void ws_BSTinsertCommand(redisClient *c){
 	int j, added = 0, status = 0;
@@ -241,7 +262,7 @@ void ws_BSTsearchCommand(redisClient *c){
 		  addReplyStatus(c, "not in bst");	
 		}
 }
-//ws_BSTtraverse key
+//ws_BSTtraverse key: LOR
 int ws_bstIntr(bstNode *root, Visit visit, redisClient *c){
 	if(root){
 		printf("=======traverse 247=========\n");
