@@ -142,19 +142,26 @@ int bstDel(bst *bt, robj *obj){
 void addTolist(bstNode *c, list *list){
 	list = listAddNodeTail(list, c->obj);
 }
-void bstTolist(bstNode *root, Convert convert, list *li){
+int _bstTolist(bstNode *root, Convert convert, list *li){
 		if(root){
 			convert(root, li);
-			if(bstTolist(root->lchild, convert, li)){
-				if(bstTolist(root->rchild, convert, li)){
+			if(_bstTolist(root->lchild, convert, li)){
+				if(_bstTolist(root->rchild, convert, li)){
 					return 1;
 				}
-		} else 
-			return 0;
-	} else {
-		return 1;
+			} else 
+				return 0;
+		} else {
+			return 1;
 	}
 }
+
+list *bstTolist(bstNode *root, list *li){
+	_bstTolist(root, addTolist, li);
+	return li;
+}
+
+
 
 
 //command: bstadd key value

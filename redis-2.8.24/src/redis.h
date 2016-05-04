@@ -1091,6 +1091,7 @@ robj *createZsetZiplistObject(void);
 robj *createBstObject(void);
 void bstFree(bst *bt);
 bst *bstCreate(void);
+list *bstTolist(bstNode *root, list *li);
 
 int getLongFromObjectOrReply(redisClient *c, robj *o, long *target, const char *msg);
 int checkType(redisClient *c, robj *o, int type);

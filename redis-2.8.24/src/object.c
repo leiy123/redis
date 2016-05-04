@@ -618,6 +618,7 @@ char *strEncoding(int encoding) {
     case REDIS_ENCODING_ZIPLIST: return "ziplist";
     case REDIS_ENCODING_INTSET: return "intset";
     case REDIS_ENCODING_SKIPLIST: return "skiplist";
+	case REDIS_ENCODING_BST: return "bst";
     default: return "unknown";
     }
 }

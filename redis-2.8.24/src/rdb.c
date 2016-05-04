@@ -597,7 +597,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
         	 if (o->encoding == REDIS_ENCODING_BST){
 			 	bst *bt = o->ptr;
 				list *list = listCreate();
-				bstTolist(bt->root, addTolist, list);
+				list = bstTolist(bt->root, list);
            		listIter li;
             	listNode *ln;
 				
@@ -605,14 +605,14 @@ int rdbSaveObject(rio *rdb, robj *o) {
             	nwritten += n;
 
             	listRewind(list,&li);
-           		while((ln = listNext(&li)) {
-                robj *eleobj = listNodeValue(ln);
-                if ((n = rdbSaveStringObject(rdb,eleobj)) == -1) return -1;
-                nwritten += n;
-            	}
-      	 	} else {
+           		while(ln = listNext(&li)) {
+					robj *eleobj = listNodeValue(ln);
+					if ((n = rdbSaveStringObject(rdb,eleobj)) == -1) return -1;
+					nwritten += n;
+					}
+				} else {
             	redisPanic("Unknown hash encoding");
-       	    } 
+			} 
 		} else {
         	redisPanic("Unknown object type");
    	    	}
@@ -883,7 +883,17 @@ robj *rdbLoadObject(int rdbtype, rio *rdb) {
                 listAddNodeTail(o->ptr,ele);
             }
         }
-    } else if (rdbtype == REDIS_RDB_TYPE_SET) {
+    } else if (rdbtype == REDIS_RDB_TYPE_BST) {
+		if ((len = rdbLoadLen(rdb,NULL)) == REDIS_RDB_LENERR) return NULL;
+		o = createBstObject();
+		while(len--){
+			if ((ele = rdbLoadEncodedStringObject(rdb)) == NULL) return NULL;
+			if(o->encoding == REDIS_ENCODING_BST){
+			ele = tryObjectEncoding(ele);
+			bstInsert(o->ptr, ele);
+			}
+		}
+	} else if (rdbtype == REDIS_RDB_TYPE_SET) {
         /* Read list/set value */
         if ((len = rdbLoadLen(rdb,NULL)) == REDIS_RDB_LENERR) return NULL;
 
