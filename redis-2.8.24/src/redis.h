@@ -336,7 +336,7 @@ typedef long long mstime_t; /* millisecond time type. */
 #define REDIS_LIST_MAX_ZIPLIST_VALUE 64
 #define REDIS_SET_MAX_INTSET_ENTRIES 512
 #define REDIS_ZSET_MAX_ZIPLIST_ENTRIES 128
-#define REDIS_ZSET_MAX_ZIPLIST_VALUE 64
+#define REDIS_ZSET_MAX_ZIPLIST_VALUE 1 //default 64
 
 /* HyperLogLog defines */
 #define REDIS_DEFAULT_HLL_SPARSE_MAX_BYTES 3000

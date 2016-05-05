@@ -80,8 +80,12 @@ zskiplist *zslCreate(void) {
 }
 
 void zslFreeNode(zskiplistNode *node) {
+	printf("=======33333333333331 %d=======\n", node->obj->refcount);
     decrRefCount(node->obj);
+	printf("=======33333333333332 %d=======\n", node->obj->refcount);
     zfree(node);
+	printf("=======33333333333333 %d=======\n", node->obj->refcount);
+	printf("=======33333333333334 %f=======\n", node->score);
 }
 
 void zslFree(zskiplist *zsl) {

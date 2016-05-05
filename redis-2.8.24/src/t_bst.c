@@ -85,10 +85,10 @@ int bstInsert(bst *bt, robj *obj) {
 	}
 }
 //helper:del root;
-bstNode *findLMax(bstNode *root, bstNode *pre, int *ret){
+bstNode *findLMax(bstNode *root, bstNode **pre, int *ret){
 	redisAssert(root != NULL);
 	bstNode *cur = root->lchild;
-	pre = root;
+	*pre = root;
 	if(cur == NULL){
 		if(root->rchild != NULL){
 			*ret = 1;
@@ -100,7 +100,7 @@ bstNode *findLMax(bstNode *root, bstNode *pre, int *ret){
 	} 
 	
 	while(cur->rchild != NULL){
-		pre = cur;
+		*pre = cur; //odd: when return back pre turns NULL
 		cur = cur->rchild;
 	}
 	if(cur->lchild != NULL) *ret = 3;
@@ -109,31 +109,71 @@ bstNode *findLMax(bstNode *root, bstNode *pre, int *ret){
 	return cur;
 }
 
+//helper for bstDel in case 2; prerequirement: locate node in bst; only for leaf node
+bstNode *pNode(bst *bt, bstNode *node, int *lr){
+	bstNode *pnode = bt->root, *cur = bt->root;
+	int ret;	
+	while(1){
+		ret = compareStringObjects(node->obj, cur->obj);
+		if(ret > 0){
+			pnode = cur;
+			cur = pnode->rchild;
+			*lr = 1; //rchild
+		} else if(ret < 0){
+			pnode = cur;
+			cur = pnode->lchild;
+			*lr = -1;
+		} else{
+			return pnode;
+		}			
+	}
+}
+
+
 int bstDel(bst *bt, robj *obj){
-	bstNode *rep, *pre, *node;
-	int ret;
+	bstNode *rep, *pre, *node, *pnode;
+	int ret, lr;
 	robj *rj;
 	
 	node = bstSearch(bt, obj);
 	if(node == NULL || (compareStringObjects(node->obj, obj) != 0) )
 		return 0;
+	
+	if(node == bt->root && !node->lchild && !node->rchild){
+		bt->num--;
+		bstFreeNode(bt->root);
+		//bt->root = NULL;
+		return 1;
+	}
+	//at lease two nodes
 	else {
 			rj = node->obj;
-			rep = findLMax(node, pre, &ret);
+			rep = findLMax(node, &pre, &ret);
 			printf("=======in bstdel ret: %d=============\n", ret);
+			if(!pre){
+				printf("=======rep nullllllllllllllllll========\n");
+				return 3;
+			}
+			//lr > 0?pnode->rchild:pnode->lchild = NULL;	
 			switch(ret){ 
 				case 1: node->obj = rep->obj; node->rchild = rep->rchild; node->lchild =rep->lchild; break;
-				case 2: rep = node; break;
-				case 3: pre->rchild = rep->lchild; node->obj = rep->obj; break;
-				case 4:  node->obj = rep->obj; break;
+				case 2: rep = node; pnode = pNode(bt, node, &lr); break;
+				case 3: pre->rchild = rep->lchild; node->obj = rep->obj; printf("====case 3===\n"); break;
+				case 4:  node->obj = rep->obj; node->lchild = NULL; break;
 				default:  return 5;
 			}
 		  bt->num--;
-		  if(ret != 2){
+		  if(ret == 2){
+			  if(lr > 0)
+				  pnode->rchild = NULL;
+			  else
+				  pnode->lchild = NULL;
+			  
+		  } else{
 			  //incrRefCount(rep->obj);
 			  rep->obj = rj;
 		  }
-		  bstFreeNode(rep);
+		  bstFreeNode(rep); //free failure
 		  return 1;
 	}
  }
@@ -300,7 +340,7 @@ void ws_BSTtraverseCommand(redisClient *c){
 	
 	 bt = (bst *)bstobj->ptr;	
 	 len = bt->num;
-	 printf("=========len: %d=============\n", len);
+	 printf("=========len: %l============\n", len);
 	 
 	 addReplyMultiBulkLen(c,len);
 	 ws_bstIntr(bt->root, addReplyBulk, c);
