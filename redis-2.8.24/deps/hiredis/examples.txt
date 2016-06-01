@@ -1,0 +1,2 @@
+cc -o examples/hiredis-example -O3 -fPIC  -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb    -I. examples/example.c libhiredis.a
+cc -o examples/hiredis-example-libevent -O3 -fPIC  -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb    -I. examples/example-libevent.c -levent libhiredis.a

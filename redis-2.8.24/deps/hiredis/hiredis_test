@@ -1,0 +1,57 @@
+./hiredis-test
+#01 Format command without interpolation: [0;32mPASSED[0;0m
+#02 Format command with %s string interpolation: [0;32mPASSED[0;0m
+#03 Format command with %s and an empty string: [0;32mPASSED[0;0m
+#04 Format command with an empty string in between proper interpolations: [0;32mPASSED[0;0m
+#05 Format command with %b string interpolation: [0;32mPASSED[0;0m
+#06 Format command with %b and an empty string: [0;32mPASSED[0;0m
+#07 Format command with literal %: [0;32mPASSED[0;0m
+#08 Format command with printf-delegation (int): [0;32mPASSED[0;0m
+#09 Format command with printf-delegation (char): [0;32mPASSED[0;0m
+#10 Format command with printf-delegation (short): [0;32mPASSED[0;0m
+#11 Format command with printf-delegation (long): [0;32mPASSED[0;0m
+#12 Format command with printf-delegation (long long): [0;32mPASSED[0;0m
+#13 Format command with printf-delegation (unsigned int): [0;32mPASSED[0;0m
+#14 Format command with printf-delegation (unsigned char): [0;32mPASSED[0;0m
+#15 Format command with printf-delegation (unsigned short): [0;32mPASSED[0;0m
+#16 Format command with printf-delegation (unsigned long): [0;32mPASSED[0;0m
+#17 Format command with printf-delegation (unsigned long long): [0;32mPASSED[0;0m
+#18 Format command with printf-delegation (float): [0;32mPASSED[0;0m
+#19 Format command with printf-delegation (double): [0;32mPASSED[0;0m
+#20 Format command with invalid printf format: [0;32mPASSED[0;0m
+#21 Format command by passing argc/argv without lengths: [0;32mPASSED[0;0m
+#22 Format command by passing argc/argv with lengths: [0;32mPASSED[0;0m
+#23 Error handling in reply parser: [0;32mPASSED[0;0m
+#24 Memory cleanup in reply parser: [0;32mPASSED[0;0m
+#25 Set error on nested multi bulks with depth > 7: [0;32mPASSED[0;0m
+#26 Works with NULL functions for reply: [0;32mPASSED[0;0m
+#27 Works when a single newline (\r\n) covers two calls to feed: [0;32mPASSED[0;0m
+#28 Don't reset state after protocol error: [0;32mPASSED[0;0m
+#29 Don't do empty allocation for empty multi bulk: [0;32mPASSED[0;0m
+#30 Returns error when host cannot be resolved: [0;32mPASSED[0;0m
+#31 Returns error when the port is not open: [0;32mPASSED[0;0m
+#32 Returns error when the unix socket path doesn't accept connections: [0;32mPASSED[0;0m
+
+Testing against TCP connection (127.0.0.1:6379):
+#33 Is able to deliver commands: [0;32mPASSED[0;0m
+#34 Is a able to send commands verbatim: [0;32mPASSED[0;0m
+#35 %s String interpolation works: [0;32mPASSED[0;0m
+#36 %b String interpolation works: [0;32mPASSED[0;0m
+#37 Binary reply length is correct: [0;32mPASSED[0;0m
+#38 Can parse nil replies: [0;32mPASSED[0;0m
+#39 Can parse integer replies: [0;32mPASSED[0;0m
+#40 Can parse multi bulk replies: [0;32mPASSED[0;0m
+#41 Can handle nested multi bulk replies: [0;32mPASSED[0;0m
+#42 Returns I/O error when the connection is lost: [0;32mPASSED[0;0m
+#43 Returns I/O error on socket timeout: [0;32mPASSED[0;0m
+#44 Set error when an invalid timeout usec value is given to redisConnectWithTimeout: [0;32mPASSED[0;0m
+#45 Set error when an invalid timeout sec value is given to redisConnectWithTimeout: [0;32mPASSED[0;0m
+#46 Append format command: [0;32mPASSED[0;0m
+#47 Throughput:
+	(1000x PING: 0.071s)
+	(1000x LRANGE with 500 elements: 0.252s)
+	(10000x PING (pipelined): 0.040s)
+	(10000x LRANGE with 500 elements (pipelined): 1.371s)
+
+Testing against Unix socket connection (/tmp/redis.sock):
+Connection error: No such file or directory

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Where to find complete Redis documentation?
 -------------------------------------------
 
@@ -172,6 +171,3 @@ Please see the CONTRIBUTING file in this source distribution for more
 information.
 
 Enjoy!
-=======
-modify redis.c redis.h
->>>>>>> f48d80f91c29bf484868628ed18dda9f3000e943
