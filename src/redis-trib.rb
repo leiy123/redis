@@ -656,7 +656,7 @@ class RedisTrib
 
     def alloc_slots
         nodes_count = @nodes.length
-        masters_count = @nodes.length / (@replicas+1)
+        masters_count = 4 #@nodes.length / (@replicas+1)
         masters = []
 
         # The first step is to split instances by IP. This is useful as
@@ -724,50 +724,49 @@ class RedisTrib
         # remaining instances as extra replicas to masters.  Some masters
         # may end up with more than their requested number of replicas, but
         # all nodes will be used.
-        assignment_verbose = false
-
-        [:requested,:unused].each do |assign|
-            masters.each do |m|
-                assigned_replicas = 0
-                while assigned_replicas < @replicas
-                    break if nodes_count == 0
-                    if assignment_verbose
-                        if assign == :requested
-                            puts "Requesting total of #{@replicas} replicas " \
-                                 "(#{assigned_replicas} replicas assigned " \
-                                 "so far with #{nodes_count} total remaining)."
-                        elsif assign == :unused
-                            puts "Assigning extra instance to replication " \
-                                 "role too (#{nodes_count} remaining)."
-                        end
-                    end
-
-                    # Return the first node not matching our current master
-                    node = interleaved.find{|n| n.info[:host] != m.info[:host]}
-
-                    # If we found a node, use it as a best-first match.
-                    # Otherwise, we didn't find a node on a different IP, so we
-                    # go ahead and use a same-IP replica.
-                    if node
-                        slave = node
-                        interleaved.delete node
-                    else
-                        slave = interleaved.shift
-                    end
-                    slave.set_as_replica(m.info[:name])
+        assignment_verbose = true
+		
+		#=============ws requested: @replicas || unused(masters[0]): nodes_count-master_count*@replicas
+		[:requested, :unused].each do |assign|
+			if assign == :requested
+				puts "================#{assign}==="
+				masters.each do |m|
+					assigned_replicas = 0
+					while assigned_replicas < @replicas
+						break if nodes_count == 0
+						node = interleaved.find{|n| n.info[:host] != m.info[:host]}
+						if node
+							slave = node
+							interleaved.delete node #delete items from interleaved of the same ip
+						else 
+							slave = interleaved.shift #delete first element  from interleaved
+						end
+						slave.set_as_replica(m.info[:name])
+						nodes_count -= 1
+						assigned_replicas += 1
+						puts "adding replica #{slave} to #{m}"
+					end
+				end
+			end
+			if assign == :unused
+				puts "===============#{assign}======="
+				m = masters[0]
+				puts "extra assignment to first master #{m}"
+				while nodes_count > 0
+					node = interleaved.find{|n| n.info[:host] != m.info[:host]}
+					if node
+						slave = node
+						interleaved.delete node 
+					else
+						 slave = interleaved.shift
+					end
+					slave.set_as_replica(m.info[:name])
                     nodes_count -= 1
-                    assigned_replicas += 1
+                    #assigned_replicas += 1
                     puts "Adding replica #{slave} to #{m}"
-
-                    # If we are in the "assign extra nodes" loop,
-                    # we want to assign one extra replica to each
-                    # master before repeating masters.
-                    # This break lets us assign extra replicas to masters
-                    # in a round-robin way.
-                    break if assign == :unused
-                end
-            end
-        end
+				end
+			end
+		end
     end
 
     def flush_nodes_config
