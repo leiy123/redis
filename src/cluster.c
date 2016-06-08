@@ -653,9 +653,9 @@ clusterNode *createClusterNode(char *nodename, int flags) {
     clusterNode *node = zmalloc(sizeof(*node));
 
     if (nodename)
-        memcpy(node->name, nodename, REDIS_CLUSTER_NAMELEN); //ws: 40 sha1 hex
+        memcpy(node->name, nodename, REDIS_CLUSTER_NAMELEN);
     else
-        getRandomHexChars(node->name, REDIS_CLUSTER_NAMELEN); //ws: node id
+        getRandomHexChars(node->name, REDIS_CLUSTER_NAMELEN);
     node->ctime = mstime();
     node->configEpoch = 0;
     node->flags = flags;
@@ -700,7 +700,7 @@ int clusterNodeAddFailureReport(clusterNode *failing, clusterNode *sender) {
     while ((ln = listNext(&li)) != NULL) {
         fr = ln->value;
         if (fr->node == sender) {
-            fr->time = mstime();  //ws: an existing failure report
+            fr->time = mstime();
             return 0;
         }
     }
@@ -730,7 +730,7 @@ void clusterNodeCleanupFailureReports(clusterNode *node) {
     listRewind(l,&li);
     while ((ln = listNext(&li)) != NULL) {
         fr = ln->value;
-        if (now - fr->time > maxtime) listDelNode(l,ln);  //ws: failReport invalid if timeout
+        if (now - fr->time > maxtime) listDelNode(l,ln);
     }
 }
 
@@ -769,7 +769,7 @@ int clusterNodeDelFailureReport(clusterNode *node, clusterNode *sender) {
  * not including this node, that may have a PFAIL or FAIL state for this
  * node as well. */
 int clusterNodeFailureReportsCount(clusterNode *node) {
-    clusterNodeCleanupFailureReports(node);  //ws : clear some invalid failReport
+    clusterNodeCleanupFailureReports(node);
     return listLength(node->fail_reports);
 }
 
@@ -1215,7 +1215,7 @@ int clusterHandshakeInProgress(char *ip, int port) {
     dictIterator *di;
     dictEntry *de;
 
-    di = dictGetSafeIterator(server.cluster->nodes);  //ws: (key, val) : (sha1 hex, clusterNode)
+    di = dictGetSafeIterator(server.cluster->nodes);
     while((de = dictNext(di)) != NULL) {
         clusterNode *node = dictGetVal(de);
 
@@ -2547,9 +2547,19 @@ void clusterSendFailoverAuthIfNeeded(clusterNode *node, clusterMsg *request) {
                 (unsigned long long) requestConfigEpoch);
         return;
     }
-
+	//ws
+	
+	if(server.cluster->failover_auth_sent == 0){
+		server.cluster->failover_auth_sent = 1;
+		redisLog(REDIS_WARNING, "==========deny first node %.46s : %d===", node->ip, node->port);
+		return ;
+	}
+	
+	redisLog(REDIS_WARNING,
+			"candidate_flag : %d=======accept second node %.46s : %d======", 
+			server.cluster->failover_auth_sent, node->ip, node->port);
     /* We can vote for this slave. */
-    clusterSendFailoverAuth(node);  //ws: CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK
+    clusterSendFailoverAuth(node);
     server.cluster->lastVoteEpoch = server.cluster->currentEpoch;
     node->slaveof->voted_time = mstime();
     redisLog(REDIS_WARNING, "Failover auth granted to %.40s for epoch %llu",
@@ -2687,7 +2697,7 @@ void clusterFailoverReplaceYourMaster(void) {
 /* This function is called if we are a slave node and our master serving
  * a non-zero amount of hash slots is in FAIL state.
  *
- * The goal of this function is:
+ * The gaol of this function is:
  * 1) To check if we are able to perform a failover, is our data updated?
  * 2) Try to get elected by masters.
  * 3) Perform the failover informing all the other nodes.
@@ -2695,7 +2705,7 @@ void clusterFailoverReplaceYourMaster(void) {
 void clusterHandleSlaveFailover(void) {
     mstime_t data_age;
     mstime_t auth_age = mstime() - server.cluster->failover_auth_time;
-    int needed_quorum = (server.cluster->size / 2) + 1; //ws: master with at least a slot
+    int needed_quorum = (server.cluster->size / 2) + 1;
     int manual_failover = server.cluster->mf_end != 0 &&
                           server.cluster->mf_can_start;
     mstime_t auth_timeout, auth_retry_time;
@@ -2706,7 +2716,7 @@ void clusterHandleSlaveFailover(void) {
      * and wait for replies), and the failover retry time (the time to wait
      * before trying to get voted again).
      *
-     * Timeout is MIN(NODE_TIMEOUT*2,2000) milliseconds. //ws:MAX
+     * Timeout is MIN(NODE_TIMEOUT*2,2000) milliseconds.
      * Retry is two times the Timeout.
      */
     auth_timeout = server.cluster_node_timeout*2;
@@ -2783,7 +2793,7 @@ void clusterHandleSlaveFailover(void) {
             "(rank #%d, offset %lld).",
             server.cluster->failover_auth_time - mstime(),
             server.cluster->failover_auth_rank,
-            replicationGetSlaveOffset());   //ws: exhibit ranks<----failover_auth_time 
+            replicationGetSlaveOffset());
         /* Now that we have a scheduled election, broadcast our offset
          * to all the other slaves so that they'll updated their offsets
          * if our offset is better. */
@@ -2829,7 +2839,7 @@ void clusterHandleSlaveFailover(void) {
         server.cluster->failover_auth_epoch = server.cluster->currentEpoch;
         redisLog(REDIS_WARNING,"Starting a failover election for epoch %llu.",
             (unsigned long long) server.cluster->currentEpoch);
-        clusterRequestFailoverAuth(); //ws : CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST
+        clusterRequestFailoverAuth();
         server.cluster->failover_auth_sent = 1;
         clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG|
                              CLUSTER_TODO_UPDATE_STATE|
@@ -2843,7 +2853,10 @@ void clusterHandleSlaveFailover(void) {
 
         redisLog(REDIS_WARNING,
             "Failover election won: I'm the new master.");
-
+		//ws
+		redisLog(REDIS_WARNING,
+				"=====%.46s : %d(check quorum :%d, actual: %d)===========",
+				myself->ip, myself->port, needed_quorum, server.cluster->failover_auth_count);
         /* Update my configEpoch to the epoch of the election. */
         if (myself->configEpoch < server.cluster->failover_auth_epoch) {
             myself->configEpoch = server.cluster->failover_auth_epoch;
@@ -3271,7 +3284,7 @@ void clusterCron(void) {
         replicationSetMaster(myself->slaveof->ip, myself->slaveof->port);
     }
 
-    /* Abort a manual failover if the timeout is reached. */
+    /* Abourt a manual failover if the timeout is reached. */
     manualFailoverCheckTimeout();
 
     if (nodeIsSlave(myself)) {
